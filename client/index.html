@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="A card payment on Stripe" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Checkout payment</title>
+
+  <script src="https://js.stripe.com/v3/"></script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?version=3.52.1&features=fetch"></script>
+  <script src="js/logic.js" defer></script>
+  
+  <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Quicksand" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet">
+  
+  <link rel="stylesheet" type="text/css" href="css/styles.css" data-rel-css="" />
+</head>
+<body>
+  <div class="globalContent">
+    <main>
+      <section class="container-lg">      
+        <div class="cell example example2" id="example-2">
+          <div class="credit-card-form">
+            <div class="first-side">
+              <div class="card-number-field data-field" id="card-number-in-form">
+                XXXX&nbsp;XXXX&nbsp;XXXX&nbsp;XXXX
+              </div>
+              <div class="cardholder-expiry-field">
+                <div class="cardholder data-field" id="cardholder-in-form">
+                  CARDHOLDER NAME
+                </div>
+                <div class="expiry data-field">
+                  MM/YY
+                </div>
+              </div>
+            </div>
+            <div class="second-side"></div>
+          </div>
+          
+          <form id="payment-form">
+            <div class="field">
+              <input id="example2-email" class="input empty data-email" type="email" placeholder="Email" autocomplete="email-line1" required>
+              <div class="baseline"></div>
+            </div>
+            <div class="field">
+              <div id="card-element"></div>
+              <div class="baseline"></div>
+            </div>
+            <div class="field">
+              <input id="example2-name" class="input empty data-cardholder" type="text" placeholder="Cardholder name" autocomplete="name-line1" required>
+              <div class="baseline"></div>
+            </div>
+            <input type="hidden" value="20.75" id="payment-amount"/>
+            <input type="hidden" value="usd" id="payment-currency"/>
+            <button type="submit" id="submit" disabled="disabled">
+              <div class="circle hidden" id="circle">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <span id="button-text">Pay some value</span>
+            </button>
+          </form>
+          <div style="height: 35px;">
+            <p id="card-error" role="alert"></p>
+            <p class="result-message hidden">Payment succeeded</p>
+          </div>
+          <div class="tn-atom">
+            <img class="tn-atom__img t-img loaded" data-original="https://static.tildacdn.com/tild6136-3033-4530-a532-346165643231/class-payments.png" imgfield="tn_img_1626358993132" src="https://thumb.tildacdn.com/tild6136-3033-4530-a532-346165643231/-/resize/124x/-/format/webp/class-payments.png">
+          </div>
+          <div class="refund-money-info">
+            <div class="tn-atom">With money back guarantee</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

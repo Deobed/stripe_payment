@@ -1,0 +1,10 @@
+.env
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+
+# Node files
+node_modules/
+
+# Ruby files
+Gemfile.lock
