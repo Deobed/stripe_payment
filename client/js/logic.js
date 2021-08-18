@@ -5,125 +5,129 @@ var stripe = Stripe(
   }
 );
 
-var purchase = {
-  items: [
-    {
-      id: 'sample-item-12345',
-      amount: document.getElementById('payment-amount').value,
-    },
-  ],
+var button = document.getElementsByTagName('button')[0];
+var nameField = document.getElementById('product-name');
+var hiddenAmount = document.getElementById('payment-amount');
+var amount = document.getElementById('amount');
+var currencyField = document.getElementById('currency');
+
+//Define price ID for backend
+var priceID = 'price_1JPQxzJSfXnflyCPjNmpA3kG';
+//Define success page for payment
+var success_url = '/congrats';
+
+var init_body = {
+  priceID: priceID,
 };
 
-document.querySelector('button').disabled = true;
-
-fetch('/api/v1/create-payment-intent', {
+fetch('/api/v1/initialize-data', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
   },
-  body: JSON.stringify(purchase),
+  body: JSON.stringify(init_body),
 })
   .then(function (result) {
     return result.json();
   })
   .then(function (data) {
+    button.disabled = false;
+    nameField.innerHTML = data.productName;
+    hiddenAmount.value = data.price;
+    currency.value = data.currency;
+    amount.innerHTML = data.correctedPrice;
+
     var elements = stripe.elements();
     var style = {
       base: {
-        color: 'black',
-        fontFamily: 'Source Code Pro, Consolas, Menlo, monospace',
-        fontSmoothing: 'antialiased',
-        fontSize: '16px',
+        iconColor: '#666EE8',
+        color: '#31325F',
+        lineHeight: '40px',
+        fontWeight: 300,
+        fontFamily: 'Helvetica Neue',
+        fontSize: '15px',
+
         '::placeholder': {
-          color: '#697386',
+          color: '#CFD7E0',
         },
-      },
-      invalid: {
-        fontFamily: 'Source Code Pro, Consolas, Menlo, monospace',
-        color: '#fa755a',
-        iconColor: '#fa755a',
       },
     };
 
-    var card = elements.create('card', { style: style });
-    // Stripe injects an iframe into the DOM
-    card.mount('#card-element');
-    var inputs = document.getElementsByClassName('input');
-    [...inputs].forEach((element) => {
-      element.style.opacity = '1';
-      // element.oninput = function (event) {
-      //   if (element.getAttribute('id') === 'example2-name') {
-      //     document.getElementById('cardholder-in-form').innerHTML =
-      //       element.value == ''
-      //         ? 'CARDHOLDER NAME'
-      //         : element.value.toUpperCase();
-      //   } else {
-      //   }
-      // };
+    var cardNumberElement = elements.create('cardNumber', {
+      style: style,
     });
-    var button = document.getElementById('button-text');
-    button.innerHTML =
-      'Pay $' + document.getElementById('payment-amount').value;
-    card.on('change', function (event) {
-      // Disable the Pay button if there are no card details in the Element
-      document.querySelector('button').disabled = event.empty;
-      document.querySelector('#card-error').textContent = event.error
-        ? event.error.message
-        : '';
+    cardNumberElement.mount('#card-number-element');
+
+    var cardExpiryElement = elements.create('cardExpiry', {
+      style: style,
+    });
+    cardExpiryElement.mount('#card-expiry-element');
+
+    var cardCvcElement = elements.create('cardCvc', {
+      style: style,
+    });
+    cardCvcElement.mount('#card-cvc-element');
+
+    cardNumberElement.on('change', function (event) {
+      setOutcome(event);
+    });
+
+    cardExpiryElement.on('change', function (event) {
+      setOutcome(event);
+    });
+
+    cardCvcElement.on('change', function (event) {
+      setOutcome(event);
     });
 
     var form = document.getElementById('payment-form');
+
     form.addEventListener('submit', function (event) {
       event.preventDefault();
-      // Complete payment when the submit button is clicked
-      payWithCard(stripe, card, data.clientSecret);
+
+      var body = {
+        amount: hiddenAmount.value,
+        currency: currency.value,
+        description: nameField.innerHTML,
+      };
+
+      fetch('/api/v1/create-payment-intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      })
+        .then(function (result) {
+          return result.json();
+        })
+        .then(function (data) {
+          stripe
+            .confirmCardPayment(data.clientSecret, {
+              payment_method: {
+                card: cardNumberElement,
+              },
+            })
+            .then(function (result) {
+              setOutcome(result);
+              if (result.paymentIntent && success_url !== '') {
+                window.location.href = success_url;
+              }
+            });
+        });
     });
   });
 
-var payWithCard = function (stripe, card, clientSecret) {
-  loading(true);
-  stripe
-    .confirmCardPayment(clientSecret, {
-      payment_method: {
-        card: card,
-      },
-    })
-    .then(function (result) {
-      if (result.error) {
-        // Show error to your customer
-        showError(result.error.message);
-      } else {
-        // The payment succeeded!
-        orderComplete(result.paymentIntent.id);
-      }
-    });
-};
+function setOutcome(result) {
+  var successElement = document.querySelector('.success');
+  var errorElement = document.querySelector('.error');
+  successElement.classList.remove('visible');
+  errorElement.classList.remove('visible');
 
-var orderComplete = function (paymentIntentId) {
-  loading(false);
-  document.querySelector('.result-message').classList.remove('hidden');
-  document.querySelector('button').disabled = true;
-  document.querySelector('button').style.backgroundColor = 'grey';
-};
-
-var showError = function (errorMsgText) {
-  loading(false);
-  var errorMsg = document.querySelector('#card-error');
-  errorMsg.textContent = errorMsgText;
-  setTimeout(function () {
-    errorMsg.textContent = '';
-  }, 4000);
-};
-
-var loading = function (isLoading) {
-  if (isLoading) {
-    // Disable the button and show a circle
-    document.querySelector('button').disabled = true;
-    document.querySelector('#circle').classList.remove('hidden');
-    document.querySelector('#button-text').classList.add('hidden');
-  } else {
-    document.querySelector('button').disabled = false;
-    document.querySelector('#circle').classList.add('hidden');
-    document.querySelector('#button-text').classList.remove('hidden');
+  if (result.paymentIntent) {
+    successElement.classList.add('visible');
+  } else if (result.error) {
+    errorElement.textContent = result.error.message;
+    errorElement.classList.add('visible');
   }
-};
+}
