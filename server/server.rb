@@ -62,11 +62,64 @@ namespace '/api/v1' do
       amount: data['amount'].to_i,  
       currency: data['currency'],
       description: data['description'],
-      receipt_email: 'denis2085@mail.ru'
     )
 
     {
       clientSecret: payment_intent['client_secret'],
     }.to_json
   end
+
+  post '/create-customer' do
+    content_type 'application/json'
+
+    data = JSON.parse request.body.read
+  
+    customer = Stripe::Customer.create(
+      email: data['email'],
+      name: data['cardholder'],
+      description: "Payment for #{data['product']}",
+    )
+  
+    { 'customer': customer }.to_json    
+  end
+
+  post '/create-subscription' do
+    content_type 'application/json'
+
+    data = JSON.parse(request.body.read)
+
+    new_subscription = {
+      customer: data['customerID'],
+      items: [{
+        price: data['priceID'],
+      }],
+    }
+
+    additional = 
+      if data['trialDays']
+        {
+          trial_period_days: data['trialDays']
+        }
+      else
+        {
+          payment_behavior: 'default_incomplete',
+          expand: ['latest_invoice.payment_intent']
+        }
+      end
+
+    subscription = Stripe::Subscription.create(
+      new_subscription.merge(additional)
+    )
+
+    subscription_data = 
+      if data['trialDays']
+        { invoice: subscription.latest_invoice }
+      else
+        { clientSecret: subscription.latest_invoice.payment_intent.client_secret }
+      end
+  
+
+    subscription_data.to_json
+  end
+
 end
